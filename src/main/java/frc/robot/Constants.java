@@ -88,6 +88,7 @@ public final class Constants
     }
 
     public static final class OIConstants {
+        // mappings: ex. kDriverYAxis = 1 corresponds to the right gamepad axis
         public static final int kDriverYAxis = 1;
         public static final int kDriverXAxis = 0;
         public static final int kDriverRotAxis = 4;

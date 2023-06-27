@@ -1,4 +1,4 @@
-package lib.math;
+package frc.robot.lib;
 
 public class Conversions {
     public static double falconToMeters(double encoderPosition, double circumference, double gearRatio){

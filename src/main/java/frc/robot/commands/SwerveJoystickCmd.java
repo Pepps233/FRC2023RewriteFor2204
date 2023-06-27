@@ -44,6 +44,7 @@ public class SwerveJoystickCmd extends CommandBase {
 
     // Called every time the scheduler runs while the command is scheduled.
     @Override
+    // called 50 times per second
     public void execute() {
         // 1. get real-time joystick inputs
         double xSpeed = xSpdFunction.get();

@@ -14,12 +14,18 @@ import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.trajectory.TrajectoryConfig;
 import edu.wpi.first.math.trajectory.TrajectoryGenerator;
 import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
-import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
-import edu.wpi.first.wpilibj2.command.SwerveControllerCommand;
+import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.SwerveJoystickCmd;
+import frc.robot.commands.TeleopPositionArm;
+import frc.robot.commands.arm.AddOffsetJointOne;
+import frc.robot.commands.arm.AddOffsetJointTwo;
+import frc.robot.commands.arm.SubOffsetJointOne;
+import frc.robot.commands.arm.SubOffsetJointTwo;
+import frc.robot.config.ArmConfiguration;
+import frc.robot.subsystems.ArmSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
 import frc.robot.Constants.OIConstants;
 import frc.robot.Constants.AutoConstants;
@@ -37,17 +43,33 @@ import java.util.List;
 public class RobotContainer {
 
     private final SwerveSubsystem swerveSubsystem = new SwerveSubsystem();
+    private final ArmSubsystem armSubsystem = new ArmSubsystem();
     private final Joystick driverJoystick = new Joystick(OIConstants.kDriverControllerPort);
+    private final XboxController xboxController = new XboxController(2);
     public RobotContainer() {
+        /*
+        *By using new to create a new instance of the command, you are creating a separate object that encapsulates the
+         command's behavior and allows it to be scheduled, initialized, and executed independently of other instances of
+         the same command.
+         */
         // setting joystick commands to default commands for the swerve chassis
         // using lambda expression to pass the values, so they can use the get() method for x & y & turning speeds
         swerveSubsystem.setDefaultCommand(new SwerveJoystickCmd(
                 swerveSubsystem,
+                /*
+                The getRawAxis() method returns a double value representing the position or value of the specified axis.
+                The range of the returned value typically depends on the specific joystick or gamepad being used, but
+                it is often in the range of -1.0 to 1.0. A value of 0.0 indicates that the axis is centered or not being
+                pushed in any direction, while positive and negative values indicate the axis being pushed in a
+                particular direction.
+                 */
                 () -> -driverJoystick.getRawAxis(OIConstants.kDriverYAxis),
                 () -> driverJoystick.getRawAxis(OIConstants.kDriverXAxis),
                 () -> driverJoystick.getRawAxis(OIConstants.kDriverRotAxis),
                 // by default will operate in the field's reference frame
                 () -> !driverJoystick.getRawButton(OIConstants.kDriverFieldOrientedButtonIdx)));
+
+        armSubsystem.setDefaultCommand(new TeleopPositionArm(armSubsystem));
 
         // Configure the trigger bindings
         configureBindings();
@@ -59,7 +81,46 @@ public class RobotContainer {
             (() -> 'swerveSubsystem.zeroHeading())' is a short way of creating a command or 'instant' command.
             this command will be executed and it will immediately finish
          */
+        // creates a new joystick button on the gamepad (button 2)
+        // use lambda here so we don't need to create another conditional flow
         new JoystickButton(driverJoystick, 2).whenPressed(() -> swerveSubsystem.zeroHeading());
+
+        /*
+        we use :: to make method references while we use lambda expressions to make anonymous function calls to pass
+        in the appropriate arguments
+
+        we use :: instead of . when creating Trigger object because if we use . operator, it will just make a method
+        call to xBoxController.getButtonPressed and return false. We use armSubsystem.set...position because we want
+        to make a method reference instead of calling it.
+
+        When the x and a button triggers .onTrue returns true, we use lambda expressions to make an anonymous function
+        call and pass in the value.
+         */
+        Trigger yButtonTrigger = new Trigger(xboxController::getYButtonPressed);
+        yButtonTrigger.onTrue(new RunCommand(armSubsystem::setNextPosition));
+
+        Trigger bButtonTrigger = new Trigger(xboxController::getBButtonPressed);
+        bButtonTrigger.onTrue(new RunCommand(armSubsystem::setPreviousPosition));
+
+        Trigger xButtonTrigger = new Trigger(xboxController::getXButtonPressed);
+        xButtonTrigger.onTrue(new RunCommand(() -> armSubsystem.setTargetPosition(ArmConfiguration.Positions.FLOOR)));
+
+        Trigger aButtonTrigger = new Trigger(xboxController::getAButtonPressed);
+        aButtonTrigger.onTrue(new RunCommand(() -> armSubsystem.setTargetPosition(ArmConfiguration.Positions.HOME)));
+
+        // creates a new trigger object (when trigger objects are first created, they always return false)
+        // creates a new trigger object with lambda expression that returns true if POV is read as 0
+        Trigger addOffsetJointOneTrigger = new Trigger(() -> xboxController.getPOV() == 0);
+        addOffsetJointOneTrigger.onTrue(new AddOffsetJointOne(armSubsystem));
+
+        Trigger addOffsetJointTwoTrigger = new Trigger(() -> xboxController.getPOV() == 90);
+        addOffsetJointTwoTrigger.onTrue(new AddOffsetJointTwo(armSubsystem));
+
+        Trigger subOffsetJointOneTrigger = new Trigger(() -> xboxController.getPOV() == 180);
+        subOffsetJointOneTrigger.onTrue(new SubOffsetJointOne(armSubsystem));
+
+        Trigger subOffsetJointTwoTrigger = new Trigger(() -> xboxController.getPOV() == 270);
+        subOffsetJointTwoTrigger.onTrue(new SubOffsetJointTwo(armSubsystem));
     }
 
     public Command getAutonomousCommand() {
