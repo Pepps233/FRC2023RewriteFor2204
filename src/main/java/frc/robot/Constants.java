@@ -111,4 +111,10 @@ public final class Constants
                         kMaxAngularAccelerationRadiansPerSecondSquared);
 
     }
+
+    public static final class ClawConstants {
+        public static final int PNEUMATIC_HUB_ID = 1;
+        public static final int FORWARD_CHANNEL = 10;
+        public static final int REVERSE_CHANNEL = 11;
+    }
 }

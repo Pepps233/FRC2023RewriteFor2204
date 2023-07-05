@@ -18,6 +18,8 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.*;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import frc.robot.commands.Claw.CloseClaw;
+import frc.robot.commands.Claw.OpenClaw;
 import frc.robot.commands.SwerveJoystickCmd;
 import frc.robot.commands.TeleopPositionArm;
 import frc.robot.commands.arm.AddOffsetJointOne;
@@ -26,6 +28,7 @@ import frc.robot.commands.arm.SubOffsetJointOne;
 import frc.robot.commands.arm.SubOffsetJointTwo;
 import frc.robot.config.ArmConfiguration;
 import frc.robot.subsystems.ArmSubsystem;
+import frc.robot.subsystems.ClawSubsystem;
 import frc.robot.subsystems.SwerveSubsystem;
 import frc.robot.Constants.OIConstants;
 import frc.robot.Constants.AutoConstants;
@@ -44,6 +47,7 @@ public class RobotContainer {
 
     private final SwerveSubsystem swerveSubsystem = new SwerveSubsystem();
     private final ArmSubsystem armSubsystem = new ArmSubsystem();
+    private final ClawSubsystem clawSubsystem = new ClawSubsystem();
     private final Joystick driverJoystick = new Joystick(OIConstants.kDriverControllerPort);
     private final XboxController xboxController = new XboxController(2);
     public RobotContainer() {
@@ -63,6 +67,7 @@ public class RobotContainer {
                 pushed in any direction, while positive and negative values indicate the axis being pushed in a
                 particular direction.
                  */
+                // using lambdas to create new supplier object and providing implementations for get() method
                 () -> -driverJoystick.getRawAxis(OIConstants.kDriverYAxis),
                 () -> driverJoystick.getRawAxis(OIConstants.kDriverXAxis),
                 () -> driverJoystick.getRawAxis(OIConstants.kDriverRotAxis),
@@ -78,11 +83,12 @@ public class RobotContainer {
     // this method will reset the robot's heading. resets the direction of the field's reference frame
     private void configureBindings() {
         /*
-            (() -> 'swerveSubsystem.zeroHeading())' is a short way of creating a command or 'instant' command.
-            this command will be executed and it will immediately finish
+
          */
         // creates a new joystick button on the gamepad (button 2)
         // use lambda here so we don't need to create another conditional flow
+
+        // the lambda expression is used as an argument
         new JoystickButton(driverJoystick, 2).whenPressed(() -> swerveSubsystem.zeroHeading());
 
         /*
@@ -110,6 +116,7 @@ public class RobotContainer {
 
         // creates a new trigger object (when trigger objects are first created, they always return false)
         // creates a new trigger object with lambda expression that returns true if POV is read as 0
+        // using lambdas to create a supplier object -> providing implementation for get() method.
         Trigger addOffsetJointOneTrigger = new Trigger(() -> xboxController.getPOV() == 0);
         addOffsetJointOneTrigger.onTrue(new AddOffsetJointOne(armSubsystem));
 
@@ -121,6 +128,13 @@ public class RobotContainer {
 
         Trigger subOffsetJointTwoTrigger = new Trigger(() -> xboxController.getPOV() == 270);
         subOffsetJointTwoTrigger.onTrue(new SubOffsetJointTwo(armSubsystem));
+
+        // Claw
+        Trigger openClaw = new Trigger(() -> xboxController.getLeftBumperPressed());
+        openClaw.onTrue(new OpenClaw(clawSubsystem));
+
+        Trigger closeClaw = new Trigger(() -> xboxController.getRightBumperPressed());
+        closeClaw.onTrue(new CloseClaw(clawSubsystem));
     }
 
     public Command getAutonomousCommand() {
